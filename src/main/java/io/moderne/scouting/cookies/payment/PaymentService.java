@@ -1,19 +1,35 @@
 package io.moderne.scouting.cookies.payment;
 
-import io.moderne.scouting.cookies.CookieCalculator;
-import io.moderne.scouting.cookies.CookieType;
+import io.moderne.scouting.cookies.error.ApiError;
+import io.moderne.scouting.cookies.error.ApiException;
+import io.moderne.scouting.cookies.payment.order.Order;
+import io.moderne.scouting.cookies.payment.order.OrderClient;
+import io.moderne.scouting.cookies.payment.user.UserClient;
+import io.moderne.scouting.cookies.user.User;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentService {
 
-    public Payment createPayment(Map<CookieType, Integer> cookies) {
-        BigDecimal price = CookieCalculator.calculatePrice(cookies);
-        return new Payment(UUID.randomUUID().toString(), price, Instant.now(), null);
+    private final UserClient userClient;
+    private final OrderClient orderClient;
+    private final Map<String, Payment> db = new HashMap<>();
+
+    public Payment createPayment(String userId, String orderId) {
+        User user = userClient.findUser(userId).orElseThrow(() -> new ApiException(new ApiError("User", "User not found")));
+        Order order = orderClient.getOrder(orderId);
+        if (order.getPayedAt() != null) {
+            throw new ApiException(new ApiError("Order", "Order already payed"));
+        }
+        Payment payment = new Payment(UUID.randomUUID().toString(), user, order.getPrice(), Instant.now(), null);
+        db.put(payment.id(), payment);
+        return payment;
     }
 }
