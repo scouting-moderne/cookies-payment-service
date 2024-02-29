@@ -23,10 +23,10 @@ public class PaymentService {
     private final Map<String, Payment> db = new HashMap<>();
 
     public Payment createPayment(String userId, String orderId) {
-        User user = userClient.findUser(userId).orElseThrow(() -> new ApiException(new ApiError("User", "User not found")));
+        User user = userClient.findUser(userId).orElseThrow(() -> new ApiException(new ApiError("User", "User not found", 500)));
         Order order = orderClient.getOrder(orderId);
         if (order.getPayedAt() != null) {
-            throw new ApiException(new ApiError("Order", "Order already payed"));
+            throw new ApiException(new ApiError("Order", "Order already payed", 500));
         }
         Payment payment = new Payment(UUID.randomUUID().toString(), user, order.getPrice(), Instant.now(), null);
         db.put(payment.id(), payment);
